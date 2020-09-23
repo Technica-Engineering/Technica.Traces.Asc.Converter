@@ -1,0 +1,3 @@
+[submodule "vector_asc/vector_asc"]
+	path = vector_asc/vector_asc
+	url = https://bitbucket.org/tobylorenz/vector_asc/
