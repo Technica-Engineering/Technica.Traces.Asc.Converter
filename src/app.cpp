@@ -15,7 +15,7 @@
 using namespace Vector::ASC;
 
 #define HAS_FLAG(var,pos) ((var) & (1<<(pos)))
-
+#define NANOS_PER_SEC 1000000000
 #define LINKTYPE_ETHERNET 1 
 #define LINKTYPE_CAN_SOCKETCAN 227 
 
@@ -100,7 +100,10 @@ public:
 	}
 
 };
-
+uint64_t get_offset_from_file_date(tm file_date) {
+	time_t time = mktime(&file_date);
+	return time;
+}
 template <class ObjHeader>
 int write_packet(
 	light_pcapng pcapng,
@@ -108,6 +111,7 @@ int write_packet(
 	ObjHeader* oh,
 	uint32_t length,
 	const uint8_t* data,
+	uint64_t date_offset,
 	uint32_t flags = 0
 ) {
 
@@ -118,9 +122,9 @@ int write_packet(
 	uint64_t ts_resol = 100000;
 
 	light_packet_header header = { 0 };
-	uint64_t ts = (100000 / ts_resol) * oh->time;
-	header.timestamp.tv_sec = ts / 100000;
-	header.timestamp.tv_nsec = ts % 100000;
+	uint64_t ts = ts_resol * oh->time + date_offset * NANOS_PER_SEC;
+	header.timestamp.tv_sec = ts / NANOS_PER_SEC;
+	header.timestamp.tv_nsec = ts % NANOS_PER_SEC;
 
 	header.captured_length = length;
 	header.original_length = length;
@@ -129,7 +133,7 @@ int write_packet(
 }
 
 // CAN_MESSAGE = 20
-void write(light_pcapng outfile, CanMessage* obj) {
+void write(light_pcapng outfile, CanMessage* obj, uint64_t date_offset) {
 	CanFrame can;
 
 	can.id(obj->id);
@@ -138,72 +142,73 @@ void write(light_pcapng outfile, CanMessage* obj) {
 
 	uint32_t flags = obj->dir == Dir::Rx ? DIR_IN : DIR_OUT;
 
-	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), flags);
+	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), date_offset, flags);
 }
 
 // CAN_EXTENDED_MESSAGE = 21
-void write(light_pcapng outfile, CanExtendedMessage* obj) {
+void write(light_pcapng outfile, CanExtendedMessage* obj, uint64_t date_offset) {
 	CanFrame can;
-
+	can.ext(true);
 	can.id(obj->id);
 	can.len(obj->dlc);
 	can.data(obj->data.data(), obj->data.size());
 
 	uint32_t flags = obj->dir == Dir::Rx ? DIR_IN : DIR_OUT;
 
-	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), flags);
+	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), date_offset, flags);
 }
 
 // CAN_REMOTE_FRAME = 22
-void write(light_pcapng outfile, CanRemoteFrame* obj) {
+void write(light_pcapng outfile, CanRemoteFrame* obj, uint64_t date_offset) {
 	CanFrame can;
 
 	can.id(obj->id);
 
 	can.rtr(true);
-	
+
 	uint32_t flags = obj->dir == Dir::Rx ? DIR_IN : DIR_OUT;
 
-	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), flags);
+	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), date_offset, flags);
 }
 
 // CAN_ERROR_FRAME = 23
-void write(light_pcapng outfile, CanErrorFrame* obj) {
+void write(light_pcapng outfile, CanErrorFrame* obj, uint64_t date_offset) {
 	CanFrame can;
 
 	can.id(obj->id);
-	can.len(obj->dlc);
+	can.len(8);
 	can.err(true);
 
 	uint32_t flags = DIR_IN;
 
-	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), flags);
+	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), date_offset, flags);
 }
 
 // CAN_ERROR = 25
-void write(light_pcapng outfile, CanError* obj) {
+void write(light_pcapng outfile, CanError* obj, uint64_t date_offset) {
 	CanFrame can;
 
+	can.len(8);
 	can.err(true);
 
 	uint32_t flags = obj->rxErr != 0 ? DIR_IN : DIR_OUT;
 
-	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), flags);
+	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), date_offset, flags);
 }
 
 // CAN_OVERLOAD_FRAME = 26
-void write(light_pcapng outfile, CanOverloadFrame* obj) {
+void write(light_pcapng outfile, CanOverloadFrame* obj, uint64_t date_offset) {
 	CanFrame can;
 
 	can.err(true);
 
 	uint32_t flags = DIR_IN;
 
-	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), flags);
+	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), date_offset, flags);
 }
 
 // CAN_FD_MESSAGE = 30
-void write(light_pcapng outfile, CanFdMessage* obj) {
+void write(light_pcapng outfile, CanFdMessage* obj, uint64_t date_offset) {
 	CanFrame can;
 	can.id(obj->id);
 	can.esi(obj->esi);
@@ -214,12 +219,13 @@ void write(light_pcapng outfile, CanFdMessage* obj) {
 
 	uint32_t flags = obj->dir == Dir::Rx ? DIR_IN : DIR_OUT;
 
-	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), flags);
+	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), date_offset, flags);
 }
 
 // CAN_FD_EXTENDED_MESSAGE = 32
-void write(light_pcapng outfile, CanFdExtendedMessage* obj) {
+void write(light_pcapng outfile, CanFdExtendedMessage* obj, uint64_t date_offset) {
 	CanFrame can;
+	can.ext(true);
 	can.id(obj->id);
 	can.esi(obj->esi);
 	can.rtr(HAS_FLAG(obj->flags, 7));
@@ -229,33 +235,32 @@ void write(light_pcapng outfile, CanFdExtendedMessage* obj) {
 
 	uint32_t flags = obj->dir == Dir::Rx ? DIR_IN : DIR_OUT;
 
-	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), flags);
+	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), date_offset, flags);
 }
 
 // CAN_FD_ERROR_FRAME = 33
-void write(light_pcapng outfile, CanFdErrorFrame* obj) {
+void write(light_pcapng outfile, CanFdErrorFrame* obj, uint64_t date_offset) {
 	CanFrame can;
-	can.id(obj->id);
+	can.err(true);
 	can.esi(obj->esi);
 	can.rtr(HAS_FLAG(obj->flags1, 7));
 	can.brs(obj->brs);
-	can.len(obj->dlc);
-	can.data(obj->data.data(), obj->data.size());
+	can.len(8);
 
 	uint32_t flags = obj->dir == Dir::Rx ? DIR_IN : DIR_OUT;
 
-	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), flags);
+	write_packet(outfile, LINKTYPE_CAN_SOCKETCAN, obj, can.size(), can.bytes(), date_offset, flags);
 }
 
 // ETHERNET_PACKET = 110
-void write(light_pcapng outfile, EthernetPacket* obj) {
+void write(light_pcapng outfile, EthernetPacket* obj, uint64_t date_offset) {
 	std::vector<uint8_t> eth(obj->data);
 	uint32_t flags = obj->dir == Dir::Rx ? DIR_IN : DIR_OUT;
 
-	write_packet(outfile, LINKTYPE_ETHERNET, obj, (uint32_t)eth.size(), eth.data(), flags);
+	write_packet(outfile, LINKTYPE_ETHERNET, obj, (uint32_t)eth.size(), eth.data(), date_offset, flags);
 }
 // ETHERNET_RX_ERROR
-void write(light_pcapng outfile, EthernetRxError* obj) {
+void write(light_pcapng outfile, EthernetRxError* obj, uint64_t date_offset) {
 	std::vector<uint8_t> eth(obj->data);
 
 	uint8_t* crcPtr = (uint8_t*)&obj->frameChecksum;
@@ -264,7 +269,7 @@ void write(light_pcapng outfile, EthernetRxError* obj) {
 
 	uint32_t flags = DIR_IN;
 
-	write_packet(outfile, LINKTYPE_ETHERNET, obj, (uint32_t)eth.size(), eth.data(), flags);
+	write_packet(outfile, LINKTYPE_ETHERNET, obj, (uint32_t)eth.size(), eth.data(), date_offset, flags);
 }
 
 int main(int argc, char* argv[]) {
@@ -284,6 +289,7 @@ int main(int argc, char* argv[]) {
 		fprintf(stderr, "Unable to open: %s\n", argv[2]);
 		return 1;
 	}
+	uint64_t file_date = get_offset_from_file_date(infile.date);
 	while (!infile.eof()) {
 		Event* ohb = nullptr;
 
@@ -300,37 +306,37 @@ int main(int argc, char* argv[]) {
 		/* Object */
 		switch (ohb->eventType) {
 		case Event::EventType::CanMessage:
-			write(outfile, reinterpret_cast<CanMessage*>(ohb));
+			write(outfile, reinterpret_cast<CanMessage*>(ohb), file_date);
 			break;
 		case Event::EventType::CanExtendedMessage:
-			write(outfile, reinterpret_cast<CanExtendedMessage*>(ohb));
+			write(outfile, reinterpret_cast<CanExtendedMessage*>(ohb), file_date);
 			break;
 		case Event::EventType::CanRemoteFrame:
-			write(outfile, reinterpret_cast<CanRemoteFrame*>(ohb));
+			write(outfile, reinterpret_cast<CanRemoteFrame*>(ohb), file_date);
 			break;
 		case Event::EventType::CanErrorFrame:
-			write(outfile, reinterpret_cast<CanErrorFrame*>(ohb));
+			write(outfile, reinterpret_cast<CanErrorFrame*>(ohb), file_date);
 			break;
 		case Event::EventType::CanError:
-			write(outfile, reinterpret_cast<CanError*>(ohb));
+			write(outfile, reinterpret_cast<CanError*>(ohb), file_date);
 			break;
 		case Event::EventType::CanOverloadFrame:
-			write(outfile, reinterpret_cast<CanOverloadFrame*>(ohb));
+			write(outfile, reinterpret_cast<CanOverloadFrame*>(ohb), file_date);
 			break;
 		case Event::EventType::CanFdMessage:
-			write(outfile, reinterpret_cast<CanFdMessage*>(ohb));
+			write(outfile, reinterpret_cast<CanFdMessage*>(ohb), file_date);
 			break;
 		case Event::EventType::CanFdExtendedMessage:
-			write(outfile, reinterpret_cast<CanFdExtendedMessage*>(ohb));
+			write(outfile, reinterpret_cast<CanFdExtendedMessage*>(ohb), file_date);
 			break;
 		case Event::EventType::CanFdErrorFrame:
-			write(outfile, reinterpret_cast<CanFdErrorFrame*>(ohb));
+			write(outfile, reinterpret_cast<CanFdErrorFrame*>(ohb), file_date);
 			break;
 		case Event::EventType::EthernetPacket:
-			write(outfile, reinterpret_cast<EthernetPacket*>(ohb));
+			write(outfile, reinterpret_cast<EthernetPacket*>(ohb), file_date);
 			break;
 		case Event::EventType::EthernetRxError:
-			write(outfile, reinterpret_cast<EthernetRxError*>(ohb));
+			write(outfile, reinterpret_cast<EthernetRxError*>(ohb), file_date);
 			break;
 		}
 	}
