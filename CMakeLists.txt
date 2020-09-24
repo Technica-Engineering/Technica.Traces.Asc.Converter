@@ -35,7 +35,6 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
     list(APPEND asc_tests "events/CanFdErrorFrame")
     list(APPEND asc_tests "events/EthernetPacket")
     list(APPEND asc_tests "events/EthernetRxError")
-    list(APPEND asc_tests "events/EthernetStatus")
 
     foreach(asc_test ${asc_tests})
         get_filename_component(param ${asc_test} NAME)
@@ -44,7 +43,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
             NAME "convert.${param}"
             COMMAND asc_converter 
                 "${CMAKE_CURRENT_LIST_DIR}/vector_asc/vector_asc/src/Vector/ASC/tests/unittests/${asc_test}.asc"
-                "${CMAKE_CURRENT_LIST_DIR}/tests/results/events_from_${asc_test}.pcapng"
+                "${CMAKE_CURRENT_LIST_DIR}/tests/results/${asc_test}.pcapng"
         )
     endforeach()
 

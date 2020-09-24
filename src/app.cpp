@@ -16,7 +16,6 @@ using namespace Vector::ASC;
 
 #define HAS_FLAG(var,pos) ((var) & (1<<(pos)))
 
-#define NANOS_PER_SEC 1000000000
 #define LINKTYPE_ETHERNET 1 
 #define LINKTYPE_CAN_SOCKETCAN 227 
 
@@ -116,12 +115,12 @@ int write_packet(
 	interface.link_type = link_type;
 	interface.name = (char*)std::to_string(oh->channel).c_str();
 
-	uint64_t ts_resol = NANOS_PER_SEC;
+	uint64_t ts_resol = 100000;
 
 	light_packet_header header = { 0 };
-	uint64_t ts = (NANOS_PER_SEC / ts_resol) * oh->time;
-	header.timestamp.tv_sec = ts / NANOS_PER_SEC;
-	header.timestamp.tv_nsec = ts % NANOS_PER_SEC;
+	uint64_t ts = (100000 / ts_resol) * oh->time;
+	header.timestamp.tv_sec = ts / 100000;
+	header.timestamp.tv_nsec = ts % 100000;
 
 	header.captured_length = length;
 	header.original_length = length;
@@ -292,7 +291,7 @@ int main(int argc, char* argv[]) {
 		try {
 			ohb = infile.read();
 		}
-		catch (std::runtime_error& e) {
+		catch (std::exception& e) {
 			std::cout << "Exception: " << e.what() << std::endl;
 		}
 		if (ohb == nullptr) {
