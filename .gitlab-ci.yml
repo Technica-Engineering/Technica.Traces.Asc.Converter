@@ -3,10 +3,9 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 .test:
-  before_script:
+  script:
     - mkdir build
     - cd build
-  script:
     - cmake .. -DCMAKE_BUILD_TYPE=Debug
     - cmake --build . --config Debug
     - ctest --build-config Debug --output-on-failure
