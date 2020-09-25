@@ -12,11 +12,16 @@ variables:
     - ctest --build-config Debug --output-on-failure
 
 windows:
+  before_script:
+    - choco install winflexbison3  
   extends: .test
   tags:
     - windows
 
 linux:
+  before_script:
+    - apt-get update
+    - apt-get install flex
   extends: .test
   tags:
     - docker
