@@ -13,7 +13,7 @@ variables:
 
 windows:
   before_script:
-    - choco install winflexbison3  
+    - choco install -y winflexbison3
   extends: .test
   tags:
     - windows
@@ -21,7 +21,7 @@ windows:
 linux:
   before_script:
     - apt-get update
-    - apt-get install flex
+    - apt-get install -y flex
   extends: .test
   tags:
     - docker
