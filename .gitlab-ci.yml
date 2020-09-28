@@ -12,7 +12,10 @@ variables:
 
 windows:
   before_script:
-    - choco install -y winflexbison3
+    - wget "https://github.com/lexxmark/winflexbison/releases/download/v2.5.23/win_flex_bison-2.5.23.zip"
+    - tar -xf win_flex_bison-2.5.23.zip 
+    - set PATH=%PATH%;%CD%
+
   extends: .test
   tags:
     - windows
