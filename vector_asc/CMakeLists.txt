@@ -14,3 +14,6 @@ add_library(Vector_ASC STATIC ${ASC_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/Lexer.c
 
 target_include_directories(Vector_ASC PUBLIC "." "vector_asc/src")
 target_include_directories(Vector_ASC PUBLIC ${FLEX_INCLUDE_DIRS})
+if (WIN32)
+	target_include_directories(Vector_ASC PUBLIC "win32")
+endif()
