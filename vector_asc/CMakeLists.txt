@@ -5,16 +5,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 # dependencies: FLEX
-if (WIN32)
-    include(FetchContent)
-    FetchContent_Declare(
-        flex
-        URL https://github.com/lexxmark/winflexbison/releases/download/v2.5.23/win_flex_bison-2.5.23.zip
-    )
-    FetchContent_MakeAvailable(flex)
-    list(APPEND CMAKE_PREFIX_PATH  "${flex_SOURCE_DIR}")
-    set(FLEX_FLAGS "--wincompat")
-endif()
+include(../cmake/flex.cmake)
 find_package(FLEX 2.6 REQUIRED)
 
 # source files
