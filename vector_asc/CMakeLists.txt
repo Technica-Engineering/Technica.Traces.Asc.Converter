@@ -16,3 +16,4 @@ file(GLOB ASC_SOURCES "vector_asc/src/Vector/ASC/*.cpp")
 add_library(Vector_ASC STATIC ${ASC_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/Lexer.cpp)
 
 target_include_directories(Vector_ASC PUBLIC "." "vector_asc/src" ${FLEX_INCLUDE_DIRS})
+target_compile_features(Vector_ASC PUBLIC cxx_std_11)
