@@ -15,7 +15,7 @@ if (WIN32)
     list(APPEND CMAKE_PREFIX_PATH  "${flex_SOURCE_DIR}")
     set(FLEX_FLAGS "--wincompat")
 endif()
-find_package(FLEX REQUIRED)
+find_package(FLEX 2.6 REQUIRED)
 
 # source files
 flex_target(Lexer "vector_asc/src/Vector/ASC/Lexer.l" ${CMAKE_CURRENT_BINARY_DIR}/Lexer.cpp COMPILE_FLAGS ${FLEX_FLAGS})
