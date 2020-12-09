@@ -9,6 +9,7 @@ This tool is intented to convert Vector ASC Logging File to PCAPNG.
 
 ```sh
 git clone https://github.com/Technica-Engineering/Technica.Traces.Asc.Converter.git
+cd Technica.Traces.Asc.Converter
 git submodule update --init --recursive
 ```
 
