@@ -124,7 +124,6 @@ int write_packet(
 	interface.name = (char*)std::to_string(oh->channel).c_str();
 	interface.description = "";
 	interface.timestamp_resolution = NANOS_PER_SEC;
-	uint64_t ts_resol = NANOS_PER_SEC;
 
 	light_packet_header header = { 0 };
 	uint64_t ts = (uint64_t)(oh->time * (EthTime)NANOS_PER_SEC) + date_offset * NANOS_PER_SEC;
