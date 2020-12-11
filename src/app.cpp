@@ -122,11 +122,11 @@ int write_packet(
 	light_packet_interface interface = { 0 };
 	interface.link_type = link_type;
 	interface.name = (char*)std::to_string(oh->channel).c_str();
-
-	uint64_t ts_resol = 100000;
+	interface.description = "";
+	interface.timestamp_resolution = NANOS_PER_SEC;
 
 	light_packet_header header = { 0 };
-	uint64_t ts = ts_resol * oh->time + date_offset * NANOS_PER_SEC;
+	uint64_t ts = (uint64_t)(oh->time * (EthTime)NANOS_PER_SEC) + date_offset * NANOS_PER_SEC;
 	header.timestamp.tv_sec = ts / NANOS_PER_SEC;
 	header.timestamp.tv_nsec = ts % NANOS_PER_SEC;
 
@@ -276,12 +276,19 @@ void write(light_pcapng outfile, EthernetRxError* obj, uint64_t date_offset) {
 	write_packet(outfile, LINKTYPE_ETHERNET, obj, (uint32_t)eth.size(), eth.data(), date_offset, flags);
 }
 
+// FILEDATE
+uint64_t calculate_filedate(FileDate *fd) {
+	time_t t = mktime(&(fd->date));
+	return t;
+}
+
 int main(int argc, char* argv[]) {
 	if (argc != 3) {
 		fprintf(stderr, "Usage %s [infile] [outfile]", argv[0]);
 		return 1;
 	}
 	Vector::ASC::File infile;
+	Vector::ASC::FileDate* fd = NULL;
 
 	infile.open(argv[1]);
 	if (!infile.is_open()) {
@@ -293,7 +300,7 @@ int main(int argc, char* argv[]) {
 		fprintf(stderr, "Unable to open: %s\n", argv[2]);
 		return 1;
 	}
-	uint64_t file_date = get_offset_from_file_date(infile.date);
+	uint64_t file_date = 0;
 	while (!infile.eof()) {
 		Event* ohb = nullptr;
 
@@ -341,6 +348,9 @@ int main(int argc, char* argv[]) {
 			break;
 		case Event::EventType::EthernetRxError:
 			write(outfile, reinterpret_cast<EthernetRxError*>(ohb), file_date);
+			break;
+		case Event::EventType::FileDate:
+			file_date = calculate_filedate(reinterpret_cast<FileDate*>(ohb));
 			break;
 		}
 	}
