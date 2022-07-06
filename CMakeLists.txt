@@ -19,6 +19,8 @@ add_executable(asc_converter "src/app.cpp" "src/endianness.h")
 target_link_libraries(asc_converter light_pcapng_static)
 target_link_libraries(asc_converter Vector_ASC)
 
+install(TARGETS asc_converter COMPONENT asc_converter)
+
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     # Testing
     include(CTest)
